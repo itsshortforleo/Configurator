@@ -1,28 +1,29 @@
 Clear-Host;
 
-"Starting RPE configuration..."
+"`nStarting RPE configuration...`n";
 
-#Host PC name, Database name, Database instance name
-$MachineName="ll-desktop.rsi";
-$DatabaseName="testDB1234";
-$DatabaseInstance="PDB";
-$DatabaseUsername="sa";
-$DatabasePassword="Rsi@123456";
+# Host PC name, Database name, Database instance name
+$machineName="ll-desktop.rsi";
+$databaseName="RPE_DATA";
+$databaseInstance="PDB";
+$databasePortNumber="1433";
+$databaseUsername="sa";
+$databasePassword="Rsi@123456";
 
 
-#Developer username and password 
-$Username="llopez@rsi";
-$Password="1234567@rsi";
+# Developer username and password 
+$username="llopez@rsi";
+$password="1234567@rsi";
 
-#Content Management Credentials
+# Content Management Credentials
 $contentManagementCredentials="admin"
 
 Get-ChildItem C:\CODE\RevenuePremier *.config -recurse |
     Foreach-Object {
         $c = ($_ | Get-Content)
-        $c = $c -replace 'add name="RSI_Connection" connectionString=".*?"',"add name=""RSI_Connection"" connectionString=""Data Source=$MachineName\$DatabaseInstance;Initial Catalog=$DatabaseName;User Id=$DatabaseUsername; Password=$DatabasePassword;""" `
-		-replace 'localhost',"$MachineName" `
-		-replace 'RPE_DATA', "$DatabaseName" `
+        $c = $c -replace 'add name="RSI_Connection" connectionString=".*?"', ('add name="RSI_Connection" connectionString="Data Source={0}\{1};Initial Catalog={2};User Id={3}; Password={4};"' -f $machineName, $databaseInstance, $databaseName, $databaseUsername, $databasePassword) `
+		-replace 'localhost',"$machineName" `
+		-replace 'RPE_DATA', "$databaseName" `
 		-replace '<log4net threshold="ERROR">','<log4net threshold="DEBUG">' `
 		-replace '<level value="ERROR"/>','<level value="DEBUG"/>' `
 		-replace '<level value="ERROR" />','<level value="DEBUG"/>' `
@@ -36,33 +37,34 @@ Get-ChildItem C:\CODE\RevenuePremier *.config -recurse |
 		[IO.File]::WriteAllText($_.FullName, ($c -join "`r`n"))
     }
 
-"`nConnection strings set to:`
-Data Source=$MachineName\$DatabaseInstance;Initial Catalog=$DatabaseName;User Id=sa; Password=Rsi@123456;";
+'Connection strings set to:
+Data Source={0}\{1};Initial Catalog={2};User Id={3}; Password={4}' -f $machineName, $databaseInstance, $databaseName, $databaseUsername, $databasePassword
+"`n"
 
 Get-ChildItem C:\Wildfly\standalone\configuration standalone.xml -recurse |
     Foreach-Object {
         $c = ($_ | Get-Content)
-        $c = $c -replace '(<connection-url>jdbc:sqlserver:).*?(</connection-url>)', "<connection-url>jdbc:sqlserver://$MachineName:1433;databaseName=$DatabaseName;instance=$DatabaseInstance</connection-url>"
+        $c = $c -replace '(<connection-url>jdbc:sqlserver:).*?(</connection-url>)', ('<connection-url>jdbc:sqlserver://{0}:{1};databaseName={2};instance={3}</connection-url>' -f $machineName,$databasePortNumber,$databaseName,$databaseInstance)
 		[IO.File]::WriteAllText($_.FullName, ($c -join "`r`n"))
     }
 
-"`nWildfly connection url set to:`
-jdbc:sqlserver://ll-desktop.rsi:1433;databaseName=$DatabaseName;instance=$DatabaseInstance"
+'Wildfly connection url set to:
+jdbc:sqlserver://{0}:{1};databaseName={2};instance={3}' -f $machineName,$databasePortNumber,$databaseName,$databaseInstance
 
 Get-ChildItem C:\Wildfly *.properties -recurse |
     Foreach-Object {
         $c = ($_ | Get-Content)
-        $c = $c -replace 'RPE_DATA', "$DatabaseName"
+        $c = $c -replace 'RPE_DATA', '{0}' -f $databaseName
 		[IO.File]::WriteAllText($_.FullName, ($c -join "`r`n"))
     }
 
 Get-ChildItem C:\RSI\RPRuleService *.config -recurse |
 Foreach-Object {
 	$c = ($_ | Get-Content)
-	$c = $c -replace 'add name="RSI_Connection" connectionString=".*?"',"add name=""RSI_Connection"" connectionString=""Data Source=$MachineName\$DatabaseInstance;Initial Catalog=$DatabaseName;User Id=sa; Password=Rsi@123456;"""
+	$c = $c -replace 'add name="RSI_Connection" connectionString=".*?"', ('add name="RSI_Connection" connectionString="Data Source={0}\{1};Initial Catalog={2};User Id={3}; Password={4};"' -f $machineName, $databaseInstance, $databaseName, $databaseUsername, $databasePassword)
 	[IO.File]::WriteAllText($_.FullName, ($c -join "`r`n"))
 }
 
-"`nSetup complete.`n";
+"`nConfiguration complete.`n";
 
 #"`a `a";
